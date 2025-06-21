@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zulu NLP Processing System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .panel h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-upload {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-upload.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.02);
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            fill: #a0aec0;
+            margin: 0 auto 15px;
+        }
+
+        .file-list {
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .file-item .file-name {
+            flex: 1;
+            margin-right: 10px;
+            color: #4a5568;
+        }
+
+        .file-item .file-size {
+            color: #718096;
+            font-size: 12px;
+        }
+
+        .remove-file {
+            background: #fed7d7;
+            color: #e53e3e;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .results-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-top: 30px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .results-title {
+            color: #4a5568;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .export-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            min-width: auto;
+            width: auto;
+        }
+
+        .analysis-container {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .analysis-title {
+            font-weight: 600;
+            color: #2d3748;
+            flex: 1;
+        }
+
+        .analysis-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .morphological-output {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .morpheme {
+            background: rgba(102, 126, 234, 0.2);
+            padding: 2px 4px;
+            border-radius: 3px;
+            margin: 1px;
+            display: inline-block;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #feb2b2;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #276749;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #9ae6b4;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .original-text {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e2e8f0;
+            font-family: 'Georgia', serif;
+            line-height: 1.6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Zulu NLP Processing System</h1>
+            <p>Advanced morphological analysis for Zulu text and documents</p>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span id="connectionStatus">Connecting to server...</span>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Text Input Panel -->
+            <div class="panel">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                    </svg>
+                    Text Analysis
+                </h2>
+                
+                <div class="tabs">
+                    <div class="tab active" data-tab="text">Direct Text</div>
+                    <div class="tab" data-tab="file">File Upload</div>
+                </div>
+
+                <div class="tab-content active" id="text-content">
+                    <div class="input-group">
+                        <label for="textInput">Enter Zulu text for analysis:</label>
+                        <textarea 
+                            id="textInput" 
+                            class="text-input" 
+                            placeholder="Sawubona! Ngiyakwazi ukuhlaziya umbhalo wakho wesiZulu lapha...
+
+Example:
+Umuntu ozilahlekelwe yizingubo zakhe
+Abantu abangasebenzisi ikhompyutha"
+                        ></textarea>
+                    </div>
+                    <button class="btn" id="analyzeTextBtn">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+                        </svg>
+                        Analyze Text
+                    </button>
+                </div>
+
+                <div class="tab-content" id="file-content">
+                    <div class="file-upload" id="fileUpload">
+                        <input type="file" id="fileInput" multiple accept=".txt,.pdf,.doc,.docx,.json,.csv">
+                        <svg class="upload-icon" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                        </svg>
+                        <p><strong>Drop files here</strong> or click to browse</p>
+                        <p>Supports: TXT, PDF, DOC, DOCX, JSON, CSV (Max 10MB each)</p>
+                    </div>
+                    <div class="file-list" id="fileList"></div>
+                    <button class="btn" id="analyzeFilesBtn" disabled>
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                        </svg>
+                        Analyze Files
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Actions Panel -->
+            <div class="panel">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.98C19.47,12.66 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11.02L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.65 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11.02C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.98Z" />
+                    </svg>
+                    Quick Actions
+                </h2>
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <button class="btn btn-secondary" id="clearAllBtn">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                        </svg>
+                        Clear All
+                    </button>
+                    
+                    <button class="btn btn-secondary" id="loadSampleBtn">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                        </svg>
+                        Load Sample Text
+                    </button>
+                    
+                    <button class="btn btn-secondary" id="checkHealthBtn">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M10.5,13H8V10.5C8,9.12 9.12,8 10.5,8S13,9.12 13,10.5V13H10.5M12.5,16H9.5V15H12.5V16M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+                        </svg>
+                        Check Server Status
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <div class="results-header">
+                <h2 class="results-title">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M5,19V5H19V19H5M6.5,17.5H9.5C10.3,17.5 11,16.8 11,16V15C11,14.2 10.3,13.5 9.5,13.5H7.5V12.5H11V11H6.5V17.5M7.5,16.5V14.5H9.5V16.5H7.5M13,11V17.5H14V14.5H16.5C17.3,14.5 18,13.8 18,13V11.5C18,10.7 17.3,10 16.5,10H13M14,11H16.5V13.5H14V11Z" />
+                    </svg>
+                    Analysis Results
+                </h2>
+                <div class="export-controls">
+                    <button class="btn export-btn" id="exportJsonBtn">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                        </svg>
+                        Export JSON
+                    </button>
+                    <button class="btn export-btn btn-secondary" id="exportCsvBtn">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                        </svg>
+                        Export CSV
+                    </button>
+                    <button class="btn export-btn btn-secondary" id="exportTxtBtn">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                        </svg>
+                        Export TXT
+                    </button>
+                </div>
+            </div>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+
+        // Replace the entire <script> section in your HTML file with this code:
+
+        const GLITCH_API_URL = 'https://nlp-pipeline-backend2.glitch.me/api'; // Updated Glitch URL
+
+        class ZuluNLPInterface {
+            constructor() {
+                this.baseURL = GLITCH_API_URL; // Use Glitch URL instead of localhost
+                this.selectedFiles = [];
+                this.currentResults = null;
+                this.pipelineReport = null;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.checkServerHealth();
+            }
+
+            setupEventListeners() {
+                // Tab switching
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+                });
+
+                // File upload
+                const fileInput = document.getElementById('fileInput');
+                const fileUpload = document.getElementById('fileUpload');
+                
+                fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                
+                // Drag and drop
+                fileUpload.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    fileUpload.classList.add('drag-over');
+                });
+                
+                fileUpload.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    fileUpload.classList.remove('drag-over');
+                });
+                
+                fileUpload.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    fileUpload.classList.remove('drag-over');
+                    this.handleFileSelect({ target: { files: e.dataTransfer.files } });
+                });
+
+                // Action buttons
+                document.getElementById('analyzeTextBtn').addEventListener('click', () => this.analyzeText());
+                document.getElementById('analyzeFilesBtn').addEventListener('click', () => this.analyzeFiles());
+                document.getElementById('clearAllBtn').addEventListener('click', () => this.clearAll());
+                document.getElementById('loadSampleBtn').addEventListener('click', () => this.loadSample());
+                document.getElementById('checkHealthBtn').addEventListener('click', () => this.checkServerHealth());
+                
+                // Export buttons
+                document.getElementById('exportJsonBtn').addEventListener('click', () => this.exportResults('json'));
+                document.getElementById('exportCsvBtn').addEventListener('click', () => this.exportResults('csv'));
+                document.getElementById('exportTxtBtn').addEventListener('click', () => this.exportResults('txt'));
+            }
+
+            switchTab(tabName) {
+                // Update tab buttons
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.tab === tabName);
+                });
+                
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.toggle('active', content.id === `${tabName}-content`);
+                });
+            }
+
+            async checkServerHealth() {
+                const statusElement = document.getElementById('connectionStatus');
+                
+                try {
+                    statusElement.textContent = 'Checking Glitch server...';
+                    const response = await axios.get(`${this.baseURL}/health`);
+                    
+                    if (response.data.status === 'healthy') {
+                        statusElement.textContent = '✅ Glitch server connected';
+                        statusElement.style.color = '#48bb78';
+                    }
+                } catch (error) {
+                    statusElement.textContent = '❌ Glitch server disconnected';
+                    statusElement.style.color = '#f56565';
+                    this.showError('Cannot connect to Glitch server. Please check the deployment status.');
+                }
+            }
+
+            handleFileSelect(event) {
+                const files = Array.from(event.target.files);
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                const allowedTypes = ['.txt', '.pdf', '.doc', '.docx', '.json', '.csv'];
+                
+                files.forEach(file => {
+                    if (file.size > maxSize) {
+                        this.showError(`File ${file.name} is too large (max 10MB)`);
+                        return;
+                    }
+                    
+                    const extension = '.' + file.name.split('.').pop().toLowerCase();
+                    if (!allowedTypes.includes(extension)) {
+                        this.showError(`File type ${extension} is not supported`);
+                        return;
+                    }
+                    
+                    if (!this.selectedFiles.find(f => f.name === file.name)) {
+                        this.selectedFiles.push(file);
+                    }
+                });
+                
+                this.updateFileList();
+                this.updateAnalyzeButton();
+            }
+
+            updateFileList() {
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '';
+                
+                this.selectedFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${this.formatFileSize(file.size)}</span>
+                        <button class="remove-file" onclick="nlpInterface.removeFile(${index})">Remove</button>
+                    `;
+                    fileList.appendChild(fileItem);
+                });
+            }
+
+            removeFile(index) {
+                this.selectedFiles.splice(index, 1);
+                this.updateFileList();
+                this.updateAnalyzeButton();
+            }
+
+            updateAnalyzeButton() {
+                const analyzeBtn = document.getElementById('analyzeFilesBtn');
+                analyzeBtn.disabled = this.selectedFiles.length === 0;
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            async analyzeText() {
+                const textInput = document.getElementById('textInput');
+                const text = textInput.value.trim();
+                
+                if (!text) {
+                    this.showError('Please enter some text to analyze');
+                    return;
+                }
+
+                const analyzeBtn = document.getElementById('analyzeTextBtn');
+                this.setButtonLoading(analyzeBtn, true);
+
+                try {
+                    const response = await axios.post(`${this.baseURL}/process-text`, {
+                        text: text,
+                        options: { enablePipelineReport: true }
+                    });
+
+                    if (response.data.success) {
+                        // Store pipeline report
+                        this.pipelineReport = response.data.pipelineReport;
+                        
+                        this.displayResults([{
+                            type: 'text',
+                            original_text: response.data.original_text,
+                            morphological_analysis: response.data.morphological_analysis,
+                            metadata: response.data.analysis_metadata,
+                            word_count: text.split(/\s+/).length,
+                            line_count: text.split('\n').length
+                        }]);
+                        this.showSuccess('Text analysis completed successfully!');
+                    } else {
+                        this.showError(response.data.error || 'Analysis failed');
+                    }
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    this.showError('Failed to analyze text. Please check your connection and try again.');
+                } finally {
+                    this.setButtonLoading(analyzeBtn, false);
+                }
+            }
+
+            async analyzeFiles() {
+                if (this.selectedFiles.length === 0) {
+                    this.showError('Please select files to analyze');
+                    return;
+                }
+
+                const analyzeBtn = document.getElementById('analyzeFilesBtn');
+                this.setButtonLoading(analyzeBtn, true);
+
+                try {
+                    const formData = new FormData();
+                    this.selectedFiles.forEach(file => {
+                        formData.append('files', file);
+                    });
+                    formData.append('options', JSON.stringify({ enablePipelineReport: true }));
+
+                    const response = await axios.post(`${this.baseURL}/process-files`, formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    });
+
+                    if (response.data.success) {
+                        // Store pipeline report
+                        this.pipelineReport = response.data.pipelineReport;
+                        
+                        const results = response.data.processed_files.map(file => ({
+                            type: 'file',
+                            filename: file.filename,
+                            size: file.size,
+                            filetype: file.type,
+                            status: file.status,
+                            original_text: file.extracted_text,
+                            morphological_analysis: file.morphological_analysis,
+                            word_count: file.word_count,
+                            line_count: file.line_count,
+                            processing_timestamp: file.processing_timestamp,
+                            error: file.error
+                        }));
+
+                        this.displayResults(results);
+                        this.showSuccess(`Successfully processed ${response.data.summary.successful} of ${response.data.summary.total_files} files`);
+                    } else {
+                        this.showError(response.data.error || 'File processing failed');
+                    }
+                } catch (error) {
+                    console.error('File processing error:', error);
+                    this.showError('Failed to process files. Please check your connection and try again.');
+                } finally {
+                    this.setButtonLoading(analyzeBtn, false);
+                }
+            }
+
+            displayResults(results) {
+                this.currentResults = results;
+                const resultsSection = document.getElementById('resultsSection');
+                const resultsContent = document.getElementById('resultsContent');
+                
+                resultsContent.innerHTML = '';
+                
+                // Create summary statistics
+                const totalWords = results.reduce((sum, r) => sum + (r.word_count || 0), 0);
+                const totalLines = results.reduce((sum, r) => sum + (r.line_count || 0), 0);
+                const successfulFiles = results.filter(r => r.status !== 'failed').length;
+                
+                const summaryHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${results.length}</div>
+                            <div class="stat-label">Items Processed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${successfulFiles}</div>
+                            <div class="stat-label">Successful</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${totalWords}</div>
+                            <div class="stat-label">Total Words</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${totalLines}</div>
+                            <div class="stat-label">Total Lines</div>
+                        </div>
+                    </div>
+                `;
+                
+                resultsContent.innerHTML = summaryHTML;
+                
+                // Add pipeline report if available
+                if (this.pipelineReport) {
+                    const pipelineHTML = this.generatePipelineReportHTML(this.pipelineReport);
+                    resultsContent.innerHTML += pipelineHTML;
+                }
+                
+                // Display each result
+                results.forEach((result, index) => {
+                    const resultContainer = document.createElement('div');
+                    resultContainer.className = 'analysis-container';
+                    
+                    if (result.status === 'failed') {
+                        resultContainer.innerHTML = `
+                            <div class="analysis-header">
+                                <div class="analysis-title">❌ ${result.filename || `Analysis ${index + 1}`}</div>
+                            </div>
+                            <div class="error">
+                                Processing failed: ${result.error || 'Unknown error'}
+                            </div>
+                        `;
+                    } else {
+                        const title = result.type === 'file' ? 
+                            `📄 ${result.filename}` : 
+                            `📝 Text Analysis ${index + 1}`;
+                            
+                        resultContainer.innerHTML = `
+                            <div class="analysis-header">
+                                <div class="analysis-title">${title}</div>
+                                <div class="analysis-stats">
+                                    <span>Words: ${result.word_count || 0}</span>
+                                    <span>Lines: ${result.line_count || 0}</span>
+                                    ${result.size ? `<span>Size: ${this.formatFileSize(result.size)}</span>` : ''}
+                                </div>
+                            </div>
+                            
+                            ${result.original_text ? `
+                                <div class="original-text">
+                                    <strong>Original Text:</strong><br>
+                                    ${this.truncateText(result.original_text, 500)}
+                                </div>
+                            ` : ''}
+                            
+                            <div>
+                                <strong>Morphological Analysis:</strong>
+                                <div class="morphological-output">${this.formatMorphologicalAnalysis(result.morphological_analysis)}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    resultsContent.appendChild(resultContainer);
+                });
+                
+                resultsSection.style.display = 'block';
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            generatePipelineReportHTML(report) {
+                if (!report || !report.pipelineMetrics) return '';
+                
+                const metrics = report.pipelineMetrics;
+                const fullReport = report.fullReport || {};
+                
+                return `
+                    <div class="analysis-container" style="border-left-color: #48bb78;">
+                        <div class="analysis-header">
+                            <div class="analysis-title">🔍 Pipeline Analysis Report</div>
+                            <div class="analysis-stats">
+                                <span>Processing Time: ${metrics.totalProcessingTime || 'N/A'}</span>
+                                <span>Success Rate: ${metrics.successRate || 'N/A'}</span>
+                                <span>Quality Score: ${metrics.dataQualityScore || 'N/A'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">${metrics.totalProcessingTime || 'N/A'}</div>
+                                <div class="stat-label">Processing Time</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${metrics.successRate || 'N/A'}</div>
+                                <div class="stat-label">Success Rate</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${metrics.dataQualityScore || 'N/A'}</div>
+                                <div class="stat-label">Quality Score</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${fullReport.performance || 'N/A'}</div>
+                                <div class="stat-label">Performance</div>
+                            </div>
+                        </div>
+                        
+                        ${metrics.recommendations && metrics.recommendations.length > 0 ? `
+                            <div style="margin-top: 20px;">
+                                <strong>📋 Recommendations:</strong>
+                                <ul style="margin-top: 10px; padding-left: 20px;">
+                                    ${metrics.recommendations.map(rec => `<li style="margin-bottom: 5px;">${rec}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${fullReport.summary ? `
+                            <div style="margin-top: 20px;">
+                                <strong>📊 Summary:</strong>
+                                <p style="margin-top: 10px; padding: 15px; background: #f8fafc; border-radius: 6px;">${fullReport.summary}</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${fullReport.nextSteps ? `
+                            <div style="margin-top: 20px;">
+                                <strong>🚀 Next Steps:</strong>
+                                <p style="margin-top: 10px; padding: 15px; background: #e6fffa; border-radius: 6px; color: #234e52;">${fullReport.nextSteps}</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${report.generatedAt ? `
+                            <div style="margin-top: 20px; text-align: right; color: #718096; font-size: 12px;">
+                                Generated: ${new Date(report.generatedAt).toLocaleString()}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            formatMorphologicalAnalysis(analysis) {
+                if (!analysis) return 'No analysis available';
+                
+                return analysis
+                    .replace(/\[(\w+)\]/g, '<span class="morpheme">[$1]</span>')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/&lt;span class="morpheme"&gt;/g, '<span class="morpheme">')
+                    .replace(/&lt;\/span&gt;/g, '</span>');
+            }
+
+            truncateText(text, maxLength) {
+                if (text.length <= maxLength) return text;
+                return text.substring(0, maxLength) + '...';
+            }
+
+            async exportResults(format) {
+                if (!this.currentResults) {
+                    this.showError('No results to export');
+                    return;
+                }
+
+                try {
+                    const exportData = {
+                        results: this.currentResults,
+                        pipelineReport: this.pipelineReport,
+                        exportedAt: new Date().toISOString()
+                    };
+
+                    const response = await axios.post(`${this.baseURL}/export`, {
+                        data: exportData,
+                        format: format
+                    }, {
+                        responseType: 'blob'
+                    });
+
+                    const blob = new Blob([response.data]);
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `zulu_analysis_results.${format}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    this.showSuccess(`Results exported as ${format.toUpperCase()}`);
+                } catch (error) {
+                    console.error('Export error:', error);
+                    this.showError('Failed to export results');
+                }
+            }
+
+            setButtonLoading(button, loading) {
+                if (loading) {
+                    button.disabled = true;
+                    button.innerHTML = `
+                        <div class="spinner"></div>
+                        Processing...
+                    `;
+                } else {
+                    button.disabled = false;
+                    // Restore original button content based on ID
+                    const originalContent = {
+                        'analyzeTextBtn': `
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+                            </svg>
+                            Analyze Text
+                        `,
+                        'analyzeFilesBtn': `
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                            </svg>
+                            Analyze Files
+                        `
+                    };
+                    button.innerHTML = originalContent[button.id] || 'Process';
+                }
+            }
+
+            clearAll() {
+                document.getElementById('textInput').value = '';
+                this.selectedFiles = [];
+                this.updateFileList();
+                this.updateAnalyzeButton();
+                document.getElementById('resultsSection').style.display = 'none';
+                this.currentResults = null;
+                this.pipelineReport = null;
+                this.showSuccess('All data cleared');
+            }
+
+            loadSample() {
+                const sampleText = `Umuntu ozilahlekelwe yizingubo zakhe
+        Abantu abangasebenzisi ikhompyutha
+        Ngiyakuthanda kakhulu
+        Sawubona, unjani namhlanje?
+        Hulumeni iphungula izindleko zokuthuthukisa izwe
+        Siyaziqhenya ngolimi lwethu lwesiZulu`;
+
+                document.getElementById('textInput').value = sampleText;
+                this.switchTab('text');
+                this.showSuccess('Sample text loaded successfully');
+            }
+
+            showError(message) {
+                this.showMessage(message, 'error');
+            }
+
+            showSuccess(message) {
+                this.showMessage(message, 'success');
+            }
+
+            showMessage(message, type) {
+                // Remove existing messages
+                document.querySelectorAll('.error, .success').forEach(el => el.remove());
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = type;
+                messageDiv.textContent = message;
+                
+                // Insert after header
+                const header = document.querySelector('.header');
+                header.insertAdjacentElement('afterend', messageDiv);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Initialize the interface
+        const nlpInterface = new ZuluNLPInterface();
+    </script>
+</body>
+</html>
